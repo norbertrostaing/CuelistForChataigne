@@ -27,8 +27,8 @@ function getContainerChildren(container) {
 	var r = [];
 
 	var content = util.getObjectProperties(container);
-
 	for (var i = 0; i< content.length; i++) {
+		script.log(i);
 		if (container[content[i]]._type == "Container") {
 			r.push(container[content[i]]);
 		}
@@ -76,7 +76,6 @@ function after(target, equals) {
 }
 
 function go() {
-	script.log("coucou");
 	var cues = getContainerChildren(cuelist);
 	var nLoad = loadInput.get();
 	var next = after(nLoad,true);
@@ -97,7 +96,15 @@ function execCue(cue) {
 
 	var preset = cue.getChild("linkedPreset").getTarget();
 	if (preset) {
-		preset.load.trigger();
+		var time = cue.getChild("transitionTime").get();
+		if (time >= 0) {
+			var saved = preset.defaultLoadTime.get();
+			preset.defaultLoadTime.set(time);
+			preset.load.trigger();
+			preset.defaultLoadTime.set(saved);
+		} else {
+			preset.load.trigger();
+		}
 	}
 
 	var sequence = cue.getChild("linkedSequence").getTarget();
@@ -111,30 +118,36 @@ function execCue(cue) {
 	}
 }
 
-var commands = local.addContainer("Commands");
-var goBtn = commands.addTrigger("GO", "go to next cue");
-var loadInput = commands.addFloatParameter("NextCue", "Target Cue for next Go", 1, 0);
-var reorderBtn = commands.addTrigger("Reorder", "Update list order");
+var commands;
+var goBtn;
+var loadInput;
+var reorderBtn;
 
-var cuelist = local.addContainer("CueList");
+var cuelist;
 
 var cue = function() {
 	var name = cueName();
 
-	var cues = getContainerChildren(cuelist);
+	var cues = getContainerChildren(local.getChild("CueList"));
 	var n = 0;
+	script.log(cues.length);
 	for (var i = 0; i< cues.length; i++) {
+		script.log(cues[i].getChild("cueNumber").get());
 		n = Math.max(n, cues[i].getChild("cueNumber").get());
+		script.log(n);
 	}
 	n = Math.floor(n);
+		script.log(n);
 
-	this.container = cuelist.addContainer(name);
+	this.container = local.getChild("CueList").addContainer(name);
 	this.number = this.container.addFloatParameter("Cue Number","Number of the cue",n+1,0);
 
 	this.targetPreset = this.container.addTargetParameter("Linked Preset", "Preset called by this cue");
 	this.targetPreset.setAttribute("targetType","container");
 	this.targetPreset.setAttribute("root",root.customVariables); 
 	this.targetPreset.setAttribute("searchLevel",2);
+
+	this.transitionTime = this.container.addFloatParameter("Transition Time", "Load time for preset in seconds (negative value means use default time)", -1, -1);
 
 	this.targetSequence = this.container.addTargetParameter("Linked Sequence", "Sequence called by this cue");
 	this.targetSequence.setAttribute("root",root.sequences);
@@ -180,12 +193,12 @@ var myEnumParam = script.addEnumParameter("My Enum Param","Description of my enu
  The init() function will allow you to init everything you want after the script has been checked and loaded
  WARNING it also means that if you change values of your parameters by hand and set their values inside the init() function, they will be reset to this value each time the script is reloaded !
 */
-function init()
-{
-	//myFloatParam.set(5); //The .set() function set the parameter to this value.
-	//myColorParam.set([1,.5,1,1]);	//for a color parameter, you need to pass an array with 3 (RGB) or 4 (RGBA) values.
-	//myP2DParam.set([1.5,-5]); // for a Point2D parameter, you need to pass 2 values (XY)
-	//myP3DParam.set([1.5,2,-3]); // for a Point3D parameter, you need to pass 3 values (XYZ)
+function init() {
+	commands = local.addContainer("Commands");
+	goBtn = commands.addTrigger("GO", "go to next cue");
+	loadInput = commands.addFloatParameter("NextCue", "Target Cue for next Go", 1, 0);
+	reorderBtn = commands.addTrigger("Reorder", "Update list order");
+	cuelist = local.addContainer("CueList");
 }
 
 /*
