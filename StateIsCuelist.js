@@ -1,3 +1,4 @@
+// root.states.comments.comment.text
 
 var goBtn = script.addTrigger("Go","Press me to go to next cue"); 		//This will add a float number parameter (slider), default value of 0.1, with a range between 0 and 1
 var nextCue = script.addIntParameter("Next Step", "loaded step", 1, 1);
@@ -6,6 +7,11 @@ var targetState = script.addTargetParameter("Target State","State to use as cuel
 targetState.setAttribute("targetType","container");
 targetState.setAttribute("root",root.states);
 targetState.setAttribute("searchLevel",0);
+
+var targetComment = script.addTargetParameter("Target Comment","Comment to display current state");
+targetComment.setAttribute("targetType","container");
+targetComment.setAttribute("root",root.states.comments);
+targetComment.setAttribute("searchLevel",0);
 
 function scriptParameterChanged(param) {
 	if(param.is(goBtn)) { go(); }
@@ -18,6 +24,9 @@ function activeStep(number) {
 		if (i == number) {
 			actions[i].enabled.set(true);
 			actions[i].trigger.trigger();
+			if (targetComment.getTarget()) {
+				targetComment.getTarget().text.set(actions[i].niceName);
+			}
 			activated = true;
 		} else {
 			actions[i].enabled.set(false);
@@ -50,7 +59,7 @@ function getActions(state) {
 	var items = state.processors.getItems();
 	for (var i = 0; i< items.length; i++) {
 		if (items[i].trigger) {
-			actions.push(items[i]);
+			actions.push(items[i])	;
 		}
 	}
 	return actions;
